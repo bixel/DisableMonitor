@@ -92,6 +92,8 @@ CFStringRef const kDisplayBrightness = CFSTR(kIODisplayBrightnessKey);
         [userDefaults setInteger:now forKey:@"lastUpdateCheck"];
         [userDefaults synchronize];
     }
+    
+    [[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self selector:@selector(activateAllDisplays) name:NSWorkspaceDidWakeNotification object:nil];
 }
 
 
@@ -333,6 +335,27 @@ CFStringRef const kDisplayBrightness = CFSTR(kIODisplayBrightnessKey);
         NSLog(@"Name: %@", exception.name);
         NSLog(@"Reason: %@", exception.reason );
     }
+}
+
+
+/**
+ * Turn on all attached Displays
+ */
+- (void)activateAllDisplays
+{
+    uint32_t displays[0x10];
+    uint32_t nDisplays;
+    CGDisplayErr err = CGSGetDisplayList(0x10, displays, &nDisplays);
+    if(err == 0){
+        for(int i = 0; i < nDisplays; i++)
+        {
+            uint32_t currentDisplay = displays[i];
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                [DisableMonitorAppDelegate toggleMonitor:currentDisplay enabled:YES];
+            });
+        }
+    }
+    NSLog(@"System woke up.");
 }
 
 
